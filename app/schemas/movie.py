@@ -72,6 +72,7 @@ class MovieBase(BaseModel):
     poster_path: Optional[str] = None
     backdrop_path: Optional[str] = None
     rating: Optional[float] = None
+    age_rating: Optional[str] = None
     is_active: bool = True
 
 class MovieCreate(MovieBase):
@@ -86,6 +87,7 @@ class MovieUpdate(BaseModel):
     poster_path: Optional[str] = None
     backdrop_path: Optional[str] = None
     rating: Optional[float] = None
+    age_rating: Optional[str] = None
     is_active: Optional[bool] = None
     genre_ids: Optional[List[uuid.UUID]] = None
 

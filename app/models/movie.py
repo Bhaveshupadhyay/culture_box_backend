@@ -62,6 +62,7 @@ class Movie(Base):
     poster_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     backdrop_path: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     rating: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    age_rating: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
