@@ -8,6 +8,9 @@ from app.models.user import User
 from app.repositories.user import UserRepository
 from app.services.user import UserService
 from app.services.auth import AuthService
+from app.repositories.movie import MovieRepository, GenreRepository, PersonRepository
+from app.services.movie import MovieService
+from app.models.movie import Movie, Genre, Person
 import uuid
 from functools import lru_cache
 
@@ -22,6 +25,26 @@ def get_user_service() -> UserService:
 @lru_cache
 def get_auth_service() -> AuthService:
     return AuthService(user_service=get_user_service())
+
+@lru_cache
+def get_movie_repository() -> MovieRepository:
+    return MovieRepository(Movie)
+
+@lru_cache
+def get_genre_repository() -> GenreRepository:
+    return GenreRepository(Genre)
+
+@lru_cache
+def get_person_repository() -> PersonRepository:
+    return PersonRepository(Person)
+
+@lru_cache
+def get_movie_service() -> MovieService:
+    return MovieService(
+        movie_repository=get_movie_repository(),
+        genre_repository=get_genre_repository(),
+        person_repository=get_person_repository()
+    )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
 
