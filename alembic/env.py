@@ -23,6 +23,7 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from app.core.config import settings
 from app.models.base import Base
 from app.models.user import User
+from app.models.movie import Movie, Genre, Person, MovieCast, MovieCrew, MovieGenre
 
 target_metadata = Base.metadata
 
