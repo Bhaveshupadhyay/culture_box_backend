@@ -11,16 +11,16 @@ class HomepageSectionBase(BaseModel):
     scroll_type: str
     is_active: bool
 
-class HomepageSectionSchema(HomepageSectionBase):
-    id: uuid.UUID
-    
-    # We will compute this field dynamically in the service/router
+# Schema for the JSON layout stored in HomeScreen
+class LayoutSectionSchema(BaseModel):
+    section_id: str
+    section_name: str
+    widget_type: str
+    scroll_type: str
     data_endpoint: str | None = None
-    
-    model_config = ConfigDict(from_attributes=True)
 
 class HomepageLayoutResponse(BaseModel):
-    sections: List[HomepageSectionSchema]
+    sections: List[LayoutSectionSchema]
 
 # Data Schema
 class SectionDataResponse(BaseModel):
