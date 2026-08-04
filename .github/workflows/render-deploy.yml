@@ -1,0 +1,18 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Render Deployment
+        # Render provides a unique Deploy Hook URL for each Web Service.
+        # When curled, it tells Render to pull the latest GitHub commit and rebuild the Dockerfile.
+        # --fail-with-body ensures that if Render returns a 4xx/5xx error, the step fails!
+        run: curl -s --fail-with-body -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
