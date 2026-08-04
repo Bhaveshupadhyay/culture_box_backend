@@ -1,6 +1,6 @@
 # Use official python:3.14-slim as base and copy uv binary from ghcr
 FROM python:3.14-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.5.21 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 WORKDIR /app
@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-install-project --no-dev
 
 # Add project code and install it
-ADD . /app
+COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
@@ -20,8 +20,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.14-slim
 WORKDIR /app
 
+# Create a non-root user for security
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
+
 # Copy the virtual environment and app code from builder
-COPY --from=builder /app /app
+COPY --chown=appuser:appgroup --from=builder /app /app
+
+# Switch to the non-root user
+USER appuser
 
 # Place the virtualenv's bin path at the front of PATH
 ENV PATH="/app/.venv/bin:$PATH"
