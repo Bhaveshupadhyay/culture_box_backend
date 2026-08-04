@@ -1,10 +1,11 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, status, Query, UploadFile, File, Form
 from app.core.dependencies import get_movie_service, get_current_superuser
 from app.services.movie import MovieService
 from app.schemas.movie import (
     Movie, MovieCreate, MovieUpdate, 
-    PaginatedMovies, MovieCastCreate, MovieCrewCreate
+    PaginatedMovies, MovieCastCreate, MovieCrewCreate,
+    MediaAsset
 )
 from app.models.user import User
 import uuid
@@ -88,3 +89,42 @@ async def add_movie_crew(
 ):
     """Add a crew member to a movie."""
     return await movie_service.add_crew_member(movie_id, crew_in)
+
+@router.get("/{movie_id}/assets", response_model=List[MediaAsset])
+async def get_media_assets(
+    movie_id: uuid.UUID,
+    movie_service: MovieService = Depends(get_movie_service)
+):
+    """Get all media assets for a movie."""
+    movie = await movie_service.get_movie(movie_id)
+    return movie.media_assets
+
+@router.post("/{movie_id}/assets", response_model=MediaAsset, status_code=status.HTTP_201_CREATED)
+async def upload_media_asset(
+    movie_id: uuid.UUID,
+    file: UploadFile = File(...),
+    asset_type: str = Form(...),
+    title: Optional[str] = Form(None),
+    language: Optional[str] = Form(None),
+    is_primary: bool = Form(False),
+    movie_service: MovieService = Depends(get_movie_service),
+    _current_user: User = Depends(get_current_superuser)
+):
+    """Upload a media asset for a movie."""
+    return await movie_service.add_media_asset(
+        movie_id=movie_id,
+        file=file,
+        asset_type=asset_type,
+        title=title,
+        language=language,
+        is_primary=is_primary
+    )
+
+@router.delete("/assets/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_media_asset(
+    asset_id: uuid.UUID,
+    movie_service: MovieService = Depends(get_movie_service),
+    _current_user: User = Depends(get_current_superuser)
+):
+    """Delete a media asset."""
+    await movie_service.delete_media_asset(asset_id)

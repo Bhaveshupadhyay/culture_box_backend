@@ -2,14 +2,17 @@ from typing import List, Optional, Tuple, Any
 from sqlalchemy.future import select
 from sqlalchemy import func, or_, desc, asc
 from app.repositories.base import BaseRepository
-from app.models.movie import Movie, Genre, Person, MovieCast, MovieCrew, MovieGenre
-from app.schemas.movie import MovieCreate, MovieUpdate, GenreCreate, GenreUpdate, PersonCreate, PersonUpdate
+from app.models.movie import Movie, Genre, Person, MovieCast, MovieCrew, MovieGenre, MediaAsset
+from app.schemas.movie import MovieCreate, MovieUpdate, GenreCreate, GenreUpdate, PersonCreate, PersonUpdate, MediaAssetCreate, MediaAssetBase
 import uuid
 
 class GenreRepository(BaseRepository[Genre, GenreCreate, GenreUpdate]):
     pass
 
 class PersonRepository(BaseRepository[Person, PersonCreate, PersonUpdate]):
+    pass
+
+class MediaAssetRepository(BaseRepository[MediaAsset, MediaAssetCreate, MediaAssetBase]):
     pass
 
 class MovieRepository(BaseRepository[Movie, MovieCreate, MovieUpdate]):
