@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,21 +41,23 @@ def get_person_repository(session: AsyncSession = Depends(get_db_session)) -> Pe
 def get_media_asset_repository(session: AsyncSession = Depends(get_db_session)) -> MediaAssetRepository:
     return MediaAssetRepository(MediaAsset, session)
 
-def get_storage_provider() -> "StorageProvider":
+def get_storage_provider() -> Optional["StorageProvider"]:
     from app.core.config import settings
     from app.core.storage.supabase import SupabaseStorageProvider
     
     if settings.STORAGE_PROVIDER == "supabase":
+        if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+            return None
         return SupabaseStorageProvider()
     
-    raise NotImplementedError(f"Storage provider {settings.STORAGE_PROVIDER} not implemented")
+    return None
 
 def get_movie_service(
     movie_repository: MovieRepository = Depends(get_movie_repository),
     genre_repository: GenreRepository = Depends(get_genre_repository),
     person_repository: PersonRepository = Depends(get_person_repository),
     media_asset_repository: MediaAssetRepository = Depends(get_media_asset_repository),
-    storage_provider: StorageProvider = Depends(get_storage_provider)
+    storage_provider: Optional[StorageProvider] = Depends(get_storage_provider)
 ) -> MovieService:
     return MovieService(
         movie_repository=movie_repository,

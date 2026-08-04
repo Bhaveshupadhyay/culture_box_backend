@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel, ConfigDict
 import uuid
 
@@ -105,7 +105,7 @@ class MediaAsset(MediaAssetBase):
     id: uuid.UUID
     file_path: str
     url: str
-    created_at: str
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

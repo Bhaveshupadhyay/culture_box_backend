@@ -1,6 +1,4 @@
 import asyncio
-import uuid
-import httpx
 from sqlalchemy.future import select
 from app.core.client import get_postgres_client
 from app.models.user import User
@@ -13,7 +11,7 @@ async def test_prod_flow():
     # 1. Get a superuser
     session_maker = get_postgres_client()
     async with session_maker() as session:
-        stmt = select(User).where(User.is_superuser == True)
+        stmt = select(User).where(User.is_superuser.is_(True))
         result = await session.execute(stmt)
         superuser = result.scalars().first()
         

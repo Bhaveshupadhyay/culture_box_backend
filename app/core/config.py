@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     UPSTASH_REDIS_REST_TOKEN: str = ""
     
     # TYPESENSE
-    TYPESENSE_API_KEY: str = "typesense-admin-key"
+    TYPESENSE_API_KEY: str = "typesense-dev-key"
     TYPESENSE_HOST: str = "localhost"
     TYPESENSE_PORT: int = 8108
     TYPESENSE_PROTOCOL: str = "http"

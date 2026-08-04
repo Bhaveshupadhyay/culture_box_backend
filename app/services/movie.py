@@ -20,7 +20,7 @@ class MovieService:
         genre_repository: GenreRepository,
         person_repository: PersonRepository,
         media_asset_repository: MediaAssetRepository,
-        storage_provider: StorageProvider
+        storage_provider: Optional[StorageProvider] = None
     ):
         self.movie_repository = movie_repository
         self.genre_repository = genre_repository
@@ -38,12 +38,11 @@ class MovieService:
         year: Optional[int] = None,
         sort_by: str = "release_date",
         sort_order: str = "desc",
-        include_details: bool = True
+        include_details: bool = False
     ) -> PaginatedMovies:
-        skip = (page - 1) * size
-        movies, has_next = await self.movie_repository.get_movies_paginated(
-            skip=skip,
-            limit=size,
+        movies, has_next = await self.movie_repository.get_paginated(
+            page=page,
+            size=size,
             search=search,
             genre_id=genre_id,
             year=year,
@@ -66,14 +65,11 @@ class MovieService:
         return movie
 
     async def create_movie(self, movie_in: MovieCreate) -> Movie:
-        # Extract genre_ids
-        genre_ids = movie_in.genre_ids
-        movie_data = movie_in.model_dump(exclude={"genre_ids"})
+        create_data = movie_in.model_dump()
+        genre_ids = create_data.pop("genre_ids", None)
         
-        # Create movie
-        movie = await self.movie_repository.create(obj_in=movie_data)
+        movie = await self.movie_repository.create(obj_in=create_data)
         
-        # Add genres if any
         if genre_ids:
             genres = []
             for gid in genre_ids:
@@ -130,33 +126,34 @@ class MovieService:
         await self.session.refresh(person)
         return person
         
-    async def add_cast_member(self, movie_id: uuid.UUID, cast_in: MovieCastCreate):
+    async def add_cast_member(self, movie_id: uuid.UUID, cast_in: MovieCastCreate) -> Movie:
         movie = await self.get_movie(movie_id)
         person = await self.person_repository.get(id=cast_in.person_id)
         if not person:
             raise NotFoundException("Person not found")
             
-        await self.movie_repository.add_cast(
-            movie_id=movie_id, 
-            person_id=cast_in.person_id, 
-            character=cast_in.character, 
+        await self.movie_repository.add_cast_member(
+            movie_id=movie_id,
+            person_id=cast_in.person_id,
+            role_name=cast_in.role_name,
+            is_lead=cast_in.is_lead,
             order=cast_in.order
         )
         await self.session.commit()
         await self.session.refresh(movie)
         return movie
         
-    async def add_crew_member(self, movie_id: uuid.UUID, crew_in: MovieCrewCreate):
+    async def add_crew_member(self, movie_id: uuid.UUID, crew_in: MovieCrewCreate) -> Movie:
         movie = await self.get_movie(movie_id)
         person = await self.person_repository.get(id=crew_in.person_id)
         if not person:
             raise NotFoundException("Person not found")
             
-        await self.movie_repository.add_crew(
-            movie_id=movie_id, 
-            person_id=crew_in.person_id, 
-            job=crew_in.job, 
-            department=crew_in.department
+        await self.movie_repository.add_crew_member(
+            movie_id=movie_id,
+            person_id=crew_in.person_id,
+            department=crew_in.department,
+            job=crew_in.job
         )
         await self.session.commit()
         await self.session.refresh(movie)
@@ -172,6 +169,14 @@ class MovieService:
         language: Optional[str] = None,
         is_primary: bool = False
     ):
+        if not self.storage_provider:
+            raise BadRequestException("Storage provider is not configured")
+
+        import re
+        sanitized_asset_type = re.sub(r'[^a-zA-Z0-9_-]', '', asset_type)
+        if not sanitized_asset_type:
+            raise BadRequestException("Invalid asset_type")
+
         allowed_types = {
             "image/jpeg", "image/png", "image/webp", 
             "video/mp4", "video/quicktime", "video/webm", "video/x-matroska"
@@ -181,12 +186,13 @@ class MovieService:
                 f"File type '{file.content_type}' is not supported. Only JPG, PNG, WEBP, and standard videos are allowed."
             )
 
-        movie = await self.get_movie(movie_id)
+        # Validate movie exists
+        await self.get_movie(movie_id)
         
         # Generate a unique path for the storage provider
         file_extension = file.filename.split('.')[-1] if file.filename and '.' in file.filename else ''
         unique_filename = f"{uuid.uuid4()}.{file_extension}" if file_extension else str(uuid.uuid4())
-        file_path = f"movies/{movie_id}/{asset_type}/{unique_filename}"
+        file_path = f"movies/{movie_id}/{sanitized_asset_type}/{unique_filename}"
         
         # Upload using the abstract storage provider
         content = await file.read()
@@ -199,7 +205,7 @@ class MovieService:
         # Save asset metadata to DB
         asset_data = {
             "movie_id": movie_id,
-            "asset_type": asset_type,
+            "asset_type": sanitized_asset_type,
             "file_path": file_path,
             "url": url,
             "title": title,
@@ -207,20 +213,33 @@ class MovieService:
             "is_primary": is_primary
         }
         
-        # Create and link asset
-        asset = await self.media_asset_repository.create(obj_in=asset_data)
-        
-        await self.session.commit()
-        await self.session.refresh(movie)
-        return asset
+        # Create and link asset in a try block to handle failures
+        try:
+            asset = await self.media_asset_repository.create(obj_in=asset_data)
+            await self.session.commit()
+            await self.session.refresh(asset)
+            return asset
+        except Exception as e:
+            await self.session.rollback()
+            # Best effort cleanup of the uploaded blob
+            try:
+                await self.storage_provider.delete_file(file_path)
+            except Exception:
+                pass
+            raise BadRequestException(f"Failed to save media asset to database: {str(e)}")
 
     async def delete_media_asset(self, asset_id: uuid.UUID):
+        if not self.storage_provider:
+            raise BadRequestException("Storage provider is not configured")
+
         asset = await self.media_asset_repository.get(id=asset_id)
         if not asset:
             raise NotFoundException("Media asset not found")
             
         # Delete from storage
-        await self.storage_provider.delete_file(asset.file_path)
+        deleted = await self.storage_provider.delete_file(asset.file_path)
+        if not deleted:
+            raise BadRequestException("Failed to delete the file from external storage provider")
         
         # Delete from DB
         await self.media_asset_repository.delete(id=asset_id)
