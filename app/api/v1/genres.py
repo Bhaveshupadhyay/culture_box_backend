@@ -1,6 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, status
-from app.core.dependencies import get_movie_service, get_current_user
+from app.core.dependencies import get_movie_service, get_current_superuser
 from app.services.movie import MovieService
 from app.schemas.movie import Genre, GenreCreate
 from app.models.user import User
@@ -18,7 +18,7 @@ async def list_genres(
 async def create_genre(
     genre_in: GenreCreate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_user)
+    _current_user: User = Depends(get_current_superuser)
 ):
     """Create a new genre."""
     return await movie_service.create_genre(genre_in)

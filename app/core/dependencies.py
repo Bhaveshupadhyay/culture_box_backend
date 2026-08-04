@@ -92,3 +92,12 @@ async def get_current_user(
         raise UnauthorizedException("Inactive user")
         
     return user
+
+async def get_current_superuser(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """Dependency for Admin APIs to ensure the user is a superuser."""
+    if not current_user.is_superuser:
+        from app.core.exceptions import ForbiddenException
+        raise ForbiddenException("You do not have enough privileges")
+    return current_user
