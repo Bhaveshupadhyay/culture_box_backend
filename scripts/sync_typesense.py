@@ -18,10 +18,11 @@ async def sync():
     client = get_typesense_client()
     search_service = SearchService(client)
     
-    print("Dropping old collection to rebuild schema...")
-    search_service.drop_collection()
+    if "--rebuild" in sys.argv:
+        print("Rebuild flag detected. Dropping old collection to rebuild schema...")
+        search_service.drop_collection()
     
-    print("Initializing Movies collection schema...")
+    print("Initializing Movies collection schema (if missing)...")
     search_service.init_collection()
     
     print("Connecting to PostgreSQL...")

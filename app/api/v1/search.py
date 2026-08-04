@@ -4,10 +4,10 @@ from app.schemas.search import SearchResponse
 from app.services.search import SearchService
 from app.core.dependencies import get_search_service
 
-router = APIRouter(prefix="/search", tags=["Search"])
+router = APIRouter(prefix="/search", tags=["search"])
 
-@router.get("", response_model=SearchResponse)
-async def search_movies(
+@router.get("/", response_model=SearchResponse)
+def search_movies(
     q: Optional[str] = Query(None, description="The search query (e.g. 'batman')"),
     genre: Optional[str] = Query(None, description="Filter by genre name"),
     page: int = Query(1, ge=1),

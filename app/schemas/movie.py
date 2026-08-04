@@ -108,7 +108,7 @@ class MovieSummary(MovieBase):
     model_config = ConfigDict(from_attributes=True)
 
 class PaginatedMovies(BaseModel):
-    items: List[MovieSummary]
+    items: List[Movie]
     page: int
     size: int
     has_next: bool = False

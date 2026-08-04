@@ -47,11 +47,8 @@ class MovieService:
             include_details=include_details
         )
         
-        from app.schemas.movie import MovieSummary
-        summary_items = [MovieSummary.model_validate(m) for m in movies]
-        
         return PaginatedMovies(
-            items=summary_items,
+            items=movies,
             page=page,
             size=size,
             has_next=has_next

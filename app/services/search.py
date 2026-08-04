@@ -51,9 +51,11 @@ class SearchService:
             "overview": movie.overview or "",
             "rating": movie.rating or 0.0,
             "poster_path": movie.poster_path or "",
-            "release_year": movie.release_date.year if movie.release_date else 0,
             "genres": genres
         }
+        
+        if movie.release_date:
+            movie_dict["release_year"] = movie.release_date.year
         
         self.client.collections[self.collection_name].documents.upsert(movie_dict)
         
@@ -69,7 +71,7 @@ class SearchService:
         }
         
         if genre:
-            search_parameters["filter_by"] = f"genres:={genre}"
+            search_parameters["filter_by"] = f"genres:=[`{genre}`]"
         
         results = self.client.collections[self.collection_name].documents.search(search_parameters)
         
