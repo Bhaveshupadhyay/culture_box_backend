@@ -60,6 +60,11 @@ def get_homepage_service(
         homepage_section_repository=homepage_section_repository
     )
 
+def get_search_service() -> "SearchService":
+    from app.services.search import SearchService
+    from app.core.search import get_typesense_client
+    return SearchService(client=get_typesense_client())
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
 
 async def get_current_user(

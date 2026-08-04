@@ -15,6 +15,7 @@ dependencies = [
     "pydantic-settings>=2.14.2",
     "pyjwt>=2.13.0",
     "sqlalchemy>=2.0.51",
+    "typesense>=2.0.0",
     "upstash-redis>=1.7.0",
     "uvicorn>=0.52.1",
 ]
