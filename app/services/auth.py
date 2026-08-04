@@ -1,5 +1,4 @@
 from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import User
 from app.schemas.user import UserCreate
 from app.schemas.token import Token
@@ -15,23 +14,23 @@ class AuthService:
     def __init__(self, user_service: UserService):
         self.user_service = user_service
 
-    async def authenticate(self, session: AsyncSession, email: str, password: str) -> Optional[User]:
-        user = await self.user_service.get_by_email(session, email)
+    async def authenticate(self, email: str, password: str) -> Optional[User]:
+        user = await self.user_service.get_by_email(email)
         if not user:
             return None
         if not verify_password(password, user.hashed_password):
             return None
         return user
         
-    async def register(self, session: AsyncSession, user_in: UserCreate) -> User:
-        return await self.user_service.create(session, user_in)
+    async def register(self, user_in: UserCreate) -> User:
+        return await self.user_service.create(user_in)
         
     def create_tokens(self, user_id: uuid.UUID) -> Token:
         access_token = create_access_token(subject=str(user_id))
         refresh_token = create_refresh_token(subject=str(user_id))
         return Token(access_token=access_token, refresh_token=refresh_token)
         
-    async def refresh(self, session: AsyncSession, refresh_token: str) -> Token:
+    async def refresh(self, refresh_token: str) -> Token:
         payload = decode_token(refresh_token)
         if not payload or payload.get("type") != "refresh":
             raise UnauthorizedException("Invalid refresh token")
@@ -45,13 +44,13 @@ class AuthService:
         except ValueError:
             raise UnauthorizedException("Invalid user id in token")
             
-        user = await self.user_service.get(session, user_id)
+        user = await self.user_service.get(user_id)
         if not user or not user.is_active:
             raise UnauthorizedException("User not found or inactive")
             
         return self.create_tokens(user.id)
         
-    async def verify_email(self, session: AsyncSession, token: str):
+    async def verify_email(self, token: str):
         payload = decode_token(token)
         if not payload or payload.get("type") != "email_verification":
             raise BadRequestException("Invalid verification token")
@@ -65,7 +64,7 @@ class AuthService:
         except ValueError:
             raise BadRequestException("Invalid user id")
             
-        user = await self.user_service.get(session, user_id)
+        user = await self.user_service.get(user_id)
         if not user:
             raise BadRequestException("User not found")
             
@@ -73,7 +72,7 @@ class AuthService:
             return
             
         from app.schemas.user import UserUpdate
-        await self.user_service.update(session, user, UserUpdate(is_verified=True))
+        await self.user_service.update(user, UserUpdate(is_verified=True))
         
     def generate_email_verification_token(self, user_id: uuid.UUID) -> str:
         # In a real app, send an email. We generate a token containing the user id.
@@ -89,7 +88,7 @@ class AuthService:
         to_encode = {"exp": expire, "sub": str(user_id), "type": "password_reset"}
         return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-    async def reset_password(self, session: AsyncSession, token: str, new_password: str):
+    async def reset_password(self, token: str, new_password: str):
         payload = decode_token(token)
         if not payload or payload.get("type") != "password_reset":
             raise BadRequestException("Invalid password reset token")
@@ -103,9 +102,9 @@ class AuthService:
         except ValueError:
             raise BadRequestException("Invalid user id")
             
-        user = await self.user_service.get(session, user_id)
+        user = await self.user_service.get(user_id)
         if not user:
             raise BadRequestException("User not found")
             
         from app.schemas.user import UserUpdate
-        await self.user_service.update(session, user, UserUpdate(password=new_password))
+        await self.user_service.update(user, UserUpdate(password=new_password))

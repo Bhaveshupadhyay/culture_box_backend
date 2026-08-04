@@ -24,6 +24,7 @@ from app.core.config import settings
 from app.models.base import Base
 from app.models.user import User
 from app.models.movie import Movie, Genre, Person, MovieCast, MovieCrew, MovieGenre
+from app.models.homepage import HomepageSection, HomeScreen
 
 target_metadata = Base.metadata
 

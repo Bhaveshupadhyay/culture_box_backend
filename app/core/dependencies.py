@@ -11,46 +11,59 @@ from app.services.auth import AuthService
 from app.repositories.movie import MovieRepository, GenreRepository, PersonRepository
 from app.services.movie import MovieService
 from app.models.movie import Movie, Genre, Person
+from app.services.homepage import HomepageService
+from app.repositories.homepage import HomeScreenRepository, HomepageSectionRepository
+from app.models.homepage import HomeScreen, HomepageSection
 import uuid
-from functools import lru_cache
 
-@lru_cache
-def get_user_repository() -> UserRepository:
-    return UserRepository(User)
+def get_user_repository(session: AsyncSession = Depends(get_db_session)) -> UserRepository:
+    return UserRepository(User, session)
 
-@lru_cache
-def get_user_service() -> UserService:
-    return UserService(user_repository=get_user_repository())
+def get_user_service(user_repository: UserRepository = Depends(get_user_repository)) -> UserService:
+    return UserService(user_repository=user_repository)
 
-@lru_cache
-def get_auth_service() -> AuthService:
-    return AuthService(user_service=get_user_service())
+def get_auth_service(user_service: UserService = Depends(get_user_service)) -> AuthService:
+    return AuthService(user_service=user_service)
 
-@lru_cache
-def get_movie_repository() -> MovieRepository:
-    return MovieRepository(Movie)
+def get_movie_repository(session: AsyncSession = Depends(get_db_session)) -> MovieRepository:
+    return MovieRepository(Movie, session)
 
-@lru_cache
-def get_genre_repository() -> GenreRepository:
-    return GenreRepository(Genre)
+def get_genre_repository(session: AsyncSession = Depends(get_db_session)) -> GenreRepository:
+    return GenreRepository(Genre, session)
 
-@lru_cache
-def get_person_repository() -> PersonRepository:
-    return PersonRepository(Person)
+def get_person_repository(session: AsyncSession = Depends(get_db_session)) -> PersonRepository:
+    return PersonRepository(Person, session)
 
-@lru_cache
-def get_movie_service() -> MovieService:
+def get_movie_service(
+    movie_repository: MovieRepository = Depends(get_movie_repository),
+    genre_repository: GenreRepository = Depends(get_genre_repository),
+    person_repository: PersonRepository = Depends(get_person_repository)
+) -> MovieService:
     return MovieService(
-        movie_repository=get_movie_repository(),
-        genre_repository=get_genre_repository(),
-        person_repository=get_person_repository()
+        movie_repository=movie_repository,
+        genre_repository=genre_repository,
+        person_repository=person_repository
+    )
+
+def get_home_screen_repository(session: AsyncSession = Depends(get_db_session)) -> HomeScreenRepository:
+    return HomeScreenRepository(HomeScreen, session)
+
+def get_homepage_section_repository(session: AsyncSession = Depends(get_db_session)) -> HomepageSectionRepository:
+    return HomepageSectionRepository(HomepageSection, session)
+
+def get_homepage_service(
+    home_screen_repository: HomeScreenRepository = Depends(get_home_screen_repository),
+    homepage_section_repository: HomepageSectionRepository = Depends(get_homepage_section_repository)
+) -> HomepageService:
+    return HomepageService(
+        home_screen_repository=home_screen_repository,
+        homepage_section_repository=homepage_section_repository
     )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    session: AsyncSession = Depends(get_db_session),
     user_service: UserService = Depends(get_user_service)
 ) -> User:
     payload = decode_token(token)
@@ -66,7 +79,7 @@ async def get_current_user(
     except ValueError:
         raise UnauthorizedException("Invalid user id format in token")
         
-    user = await user_service.get(session, user_id)
+    user = await user_service.get(user_id)
     if not user:
         raise UnauthorizedException("User not found")
         
