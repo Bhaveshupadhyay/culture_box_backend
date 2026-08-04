@@ -1,6 +1,6 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, Query
-from app.core.dependencies import get_movie_service, get_current_user
+from app.core.dependencies import get_movie_service, get_current_superuser
 from app.services.movie import MovieService
 from app.schemas.movie import (
     Movie, MovieCreate, MovieUpdate, 
@@ -37,7 +37,7 @@ async def list_movies(
 async def create_movie(
     movie_in: MovieCreate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_user)  # Requires auth
+    current_user: User = Depends(get_current_superuser)  # Requires admin
 ):
     """Create a new movie."""
     return await movie_service.create_movie(movie_in)
@@ -55,7 +55,7 @@ async def update_movie(
     movie_id: uuid.UUID,
     movie_in: MovieUpdate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_user)  # Requires auth
+    current_user: User = Depends(get_current_superuser)  # Requires admin
 ):
     """Update a movie."""
     return await movie_service.update_movie(movie_id, movie_in)
@@ -64,7 +64,7 @@ async def update_movie(
 async def delete_movie(
     movie_id: uuid.UUID,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_user)  # Requires auth
+    current_user: User = Depends(get_current_superuser)  # Requires admin
 ):
     """Delete a movie."""
     await movie_service.delete_movie(movie_id)
@@ -74,7 +74,7 @@ async def add_movie_cast(
     movie_id: uuid.UUID,
     cast_in: MovieCastCreate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_superuser)
 ):
     """Add a cast member to a movie."""
     return await movie_service.add_cast_member(movie_id, cast_in)
@@ -84,7 +84,7 @@ async def add_movie_crew(
     movie_id: uuid.UUID,
     crew_in: MovieCrewCreate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_superuser)
 ):
     """Add a crew member to a movie."""
     return await movie_service.add_crew_member(movie_id, crew_in)
