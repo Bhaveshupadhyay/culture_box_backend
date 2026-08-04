@@ -91,11 +91,30 @@ class MovieUpdate(BaseModel):
     is_active: Optional[bool] = None
     genre_ids: Optional[List[uuid.UUID]] = None
 
+# --- Media Asset Schemas ---
+class MediaAssetBase(BaseModel):
+    asset_type: str
+    title: Optional[str] = None
+    language: Optional[str] = None
+    is_primary: bool = False
+
+class MediaAssetCreate(MediaAssetBase):
+    pass
+
+class MediaAsset(MediaAssetBase):
+    id: uuid.UUID
+    file_path: str
+    url: str
+    created_at: str
+
+    model_config = ConfigDict(from_attributes=True)
+
 class Movie(MovieBase):
     id: uuid.UUID
     genres: List[Genre] = []
     cast: List[MovieCast] = []
     crew: List[MovieCrew] = []
+    media_assets: List[MediaAsset] = []
 
     model_config = ConfigDict(from_attributes=True)
 

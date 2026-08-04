@@ -8,13 +8,15 @@ from app.models.user import User
 from app.repositories.user import UserRepository
 from app.services.user import UserService
 from app.services.auth import AuthService
-from app.repositories.movie import MovieRepository, GenreRepository, PersonRepository
+from app.repositories.movie import MovieRepository, GenreRepository, PersonRepository, MediaAssetRepository
 from app.services.movie import MovieService
-from app.models.movie import Movie, Genre, Person
+from app.models.movie import Movie, Genre, Person, MediaAsset
 from app.services.homepage import HomepageService
 from app.repositories.homepage import HomeScreenRepository, HomepageSectionRepository
 from app.models.homepage import HomeScreen, HomepageSection
 import uuid
+from app.core.storage.base import StorageProvider
+from app.services.search import SearchService
 
 def get_user_repository(session: AsyncSession = Depends(get_db_session)) -> UserRepository:
     return UserRepository(User, session)
@@ -34,15 +36,31 @@ def get_genre_repository(session: AsyncSession = Depends(get_db_session)) -> Gen
 def get_person_repository(session: AsyncSession = Depends(get_db_session)) -> PersonRepository:
     return PersonRepository(Person, session)
 
+def get_media_asset_repository(session: AsyncSession = Depends(get_db_session)) -> MediaAssetRepository:
+    return MediaAssetRepository(MediaAsset, session)
+
+def get_storage_provider() -> "StorageProvider":
+    from app.core.config import settings
+    from app.core.storage.supabase import SupabaseStorageProvider
+    
+    if settings.STORAGE_PROVIDER == "supabase":
+        return SupabaseStorageProvider()
+    
+    raise NotImplementedError(f"Storage provider {settings.STORAGE_PROVIDER} not implemented")
+
 def get_movie_service(
     movie_repository: MovieRepository = Depends(get_movie_repository),
     genre_repository: GenreRepository = Depends(get_genre_repository),
-    person_repository: PersonRepository = Depends(get_person_repository)
+    person_repository: PersonRepository = Depends(get_person_repository),
+    media_asset_repository: MediaAssetRepository = Depends(get_media_asset_repository),
+    storage_provider: StorageProvider = Depends(get_storage_provider)
 ) -> MovieService:
     return MovieService(
         movie_repository=movie_repository,
         genre_repository=genre_repository,
-        person_repository=person_repository
+        person_repository=person_repository,
+        media_asset_repository=media_asset_repository,
+        storage_provider=storage_provider
     )
 
 def get_home_screen_repository(session: AsyncSession = Depends(get_db_session)) -> HomeScreenRepository:
@@ -61,9 +79,9 @@ def get_homepage_service(
     )
 
 def get_search_service() -> "SearchService":
-    from app.services.search import SearchService
     from app.core.search import get_typesense_client
     return SearchService(client=get_typesense_client())
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"/api/v1/auth/login")
 

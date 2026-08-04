@@ -27,10 +27,15 @@ class Settings(BaseSettings):
     UPSTASH_REDIS_REST_TOKEN: str = ""
     
     # TYPESENSE
-    TYPESENSE_API_KEY: str = "typesense-dev-key"
+    TYPESENSE_API_KEY: str = "typesense-admin-key"
     TYPESENSE_HOST: str = "localhost"
     TYPESENSE_PORT: int = 8108
     TYPESENSE_PROTOCOL: str = "http"
+    
+    # Storage
+    STORAGE_PROVIDER: str = "supabase"
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""
     
     model_config = SettingsConfigDict(case_sensitive=True, env_file=".env")
 

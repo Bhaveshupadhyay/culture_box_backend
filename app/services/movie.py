@@ -2,26 +2,31 @@ from typing import List, Optional
 from app.models.movie import Movie, Genre, Person
 from app.schemas.movie import (
     MovieCreate, MovieUpdate, 
-    GenreCreate, GenreUpdate,
-    PersonCreate, PersonUpdate,
+    GenreCreate,
+    PersonCreate,
     MovieCastCreate, MovieCrewCreate,
     PaginatedMovies
 )
-from app.repositories.movie import MovieRepository, GenreRepository, PersonRepository
+from app.repositories.movie import MovieRepository, GenreRepository, PersonRepository, MediaAssetRepository
 from app.core.exceptions import NotFoundException, BadRequestException
+from app.core.storage.base import StorageProvider
+from fastapi import UploadFile
 import uuid
-import math
 
 class MovieService:
     def __init__(
         self, 
         movie_repository: MovieRepository,
         genre_repository: GenreRepository,
-        person_repository: PersonRepository
+        person_repository: PersonRepository,
+        media_asset_repository: MediaAssetRepository,
+        storage_provider: StorageProvider
     ):
         self.movie_repository = movie_repository
         self.genre_repository = genre_repository
         self.person_repository = person_repository
+        self.media_asset_repository = media_asset_repository
+        self.storage_provider = storage_provider
         self.session = movie_repository.session
         
     async def get_movies(
@@ -54,7 +59,7 @@ class MovieService:
             has_next=has_next
         )
         
-    async def get_movie(self, movie_id: uuid.UUID) -> Optional[Movie]:
+    async def get_movie(self, movie_id: uuid.UUID) -> Movie:
         movie = await self.movie_repository.get(id=movie_id)
         if not movie:
             raise NotFoundException("Movie not found")
@@ -156,3 +161,68 @@ class MovieService:
         await self.session.commit()
         await self.session.refresh(movie)
         return movie
+
+    # --- Media Assets Management ---
+    async def add_media_asset(
+        self, 
+        movie_id: uuid.UUID, 
+        file: UploadFile,
+        asset_type: str,
+        title: Optional[str] = None,
+        language: Optional[str] = None,
+        is_primary: bool = False
+    ):
+        allowed_types = {
+            "image/jpeg", "image/png", "image/webp", 
+            "video/mp4", "video/quicktime", "video/webm", "video/x-matroska"
+        }
+        if not file.content_type or file.content_type not in allowed_types:
+            raise BadRequestException(
+                f"File type '{file.content_type}' is not supported. Only JPG, PNG, WEBP, and standard videos are allowed."
+            )
+
+        movie = await self.get_movie(movie_id)
+        
+        # Generate a unique path for the storage provider
+        file_extension = file.filename.split('.')[-1] if file.filename and '.' in file.filename else ''
+        unique_filename = f"{uuid.uuid4()}.{file_extension}" if file_extension else str(uuid.uuid4())
+        file_path = f"movies/{movie_id}/{asset_type}/{unique_filename}"
+        
+        # Upload using the abstract storage provider
+        content = await file.read()
+        url = await self.storage_provider.upload_file(
+            file_content=content,
+            file_path=file_path,
+            content_type=file.content_type or "application/octet-stream"
+        )
+        
+        # Save asset metadata to DB
+        asset_data = {
+            "movie_id": movie_id,
+            "asset_type": asset_type,
+            "file_path": file_path,
+            "url": url,
+            "title": title,
+            "language": language,
+            "is_primary": is_primary
+        }
+        
+        # Create and link asset
+        asset = await self.media_asset_repository.create(obj_in=asset_data)
+        
+        await self.session.commit()
+        await self.session.refresh(movie)
+        return asset
+
+    async def delete_media_asset(self, asset_id: uuid.UUID):
+        asset = await self.media_asset_repository.get(id=asset_id)
+        if not asset:
+            raise NotFoundException("Media asset not found")
+            
+        # Delete from storage
+        await self.storage_provider.delete_file(asset.file_path)
+        
+        # Delete from DB
+        await self.media_asset_repository.delete(id=asset_id)
+        await self.session.commit()
+        return {"success": True}

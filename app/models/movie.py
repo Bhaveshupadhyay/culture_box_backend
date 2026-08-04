@@ -70,3 +70,19 @@ class Movie(Base):
     genres: Mapped[List["Genre"]] = relationship(secondary="movie_genres", back_populates="movies", lazy="selectin")
     cast: Mapped[List["MovieCast"]] = relationship(back_populates="movie", lazy="selectin", order_by="MovieCast.order")
     crew: Mapped[List["MovieCrew"]] = relationship(back_populates="movie", lazy="selectin")
+    media_assets: Mapped[List["MediaAsset"]] = relationship(back_populates="movie", lazy="selectin", cascade="all, delete-orphan")
+
+class MediaAsset(Base):
+    __tablename__ = "media_assets"
+    
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, index=True, default=uuid.uuid4)
+    movie_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("movies.id", ondelete="CASCADE"), index=True)
+    asset_type: Mapped[str] = mapped_column(String(50), nullable=False) # feature, trailer, teaser, poster, subtitle, etc.
+    file_path: Mapped[str] = mapped_column(String(512), nullable=False) # e.g. /movies/uuid/trailer.mp4
+    url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    language: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    
+    movie: Mapped["Movie"] = relationship(back_populates="media_assets")
