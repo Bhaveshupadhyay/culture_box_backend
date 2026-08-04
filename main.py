@@ -34,8 +34,8 @@ app.include_router(people_router, prefix=settings.API_V1_STR)
 app.include_router(homepage_router, prefix=settings.API_V1_STR)
 app.include_router(search_router, prefix=settings.API_V1_STR)
 
-@app.get("/health", tags=["Health"])
-@app.head("/health", tags=["Health"])
+@app.get("/health", tags=["health"])
+@app.head("/health", tags=["health"])
 async def health_check():
     """Render and other load balancers use this to check if the app is alive."""
     return {"status": "ok"}
