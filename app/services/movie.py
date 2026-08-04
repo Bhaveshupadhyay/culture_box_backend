@@ -40,9 +40,10 @@ class MovieService:
         sort_order: str = "desc",
         include_details: bool = False
     ) -> PaginatedMovies:
-        movies, has_next = await self.movie_repository.get_paginated(
-            page=page,
-            size=size,
+        skip = (page - 1) * size
+        movies, has_next = await self.movie_repository.get_movies_paginated(
+            skip=skip,
+            limit=size,
             search=search,
             genre_id=genre_id,
             year=year,
@@ -132,11 +133,10 @@ class MovieService:
         if not person:
             raise NotFoundException("Person not found")
             
-        await self.movie_repository.add_cast_member(
+        await self.movie_repository.add_cast(
             movie_id=movie_id,
             person_id=cast_in.person_id,
-            role_name=cast_in.role_name,
-            is_lead=cast_in.is_lead,
+            character=cast_in.character,
             order=cast_in.order
         )
         await self.session.commit()
@@ -149,7 +149,7 @@ class MovieService:
         if not person:
             raise NotFoundException("Person not found")
             
-        await self.movie_repository.add_crew_member(
+        await self.movie_repository.add_crew(
             movie_id=movie_id,
             person_id=crew_in.person_id,
             department=crew_in.department,
