@@ -1,5 +1,4 @@
 from typing import List, Optional, Tuple, Any
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, or_, desc, asc
 from app.repositories.base import BaseRepository
@@ -17,18 +16,26 @@ class MovieRepository(BaseRepository[Movie, MovieCreate, MovieUpdate]):
     
     async def get_movies_paginated(
         self,
-        session: AsyncSession,
         skip: int = 0,
         limit: int = 20,
         search: Optional[str] = None,
         genre_id: Optional[uuid.UUID] = None,
         year: Optional[int] = None,
         sort_by: str = "release_date",
-        sort_order: str = "desc"
-    ) -> Tuple[List[Movie], int]:
+        sort_order: str = "desc",
+        include_details: bool = True
+    ) -> Tuple[List[Movie], bool]:
+        from sqlalchemy.orm import noload
         
         query = select(Movie)
         
+        if not include_details:
+            query = query.options(
+                noload(Movie.cast),
+                noload(Movie.crew),
+                noload(Movie.genres)
+            )
+            
         # Filtering
         if search:
             query = query.filter(or_(Movie.title.ilike(f"%{search}%"), Movie.original_title.ilike(f"%{search}%")))
@@ -44,37 +51,29 @@ class MovieRepository(BaseRepository[Movie, MovieCreate, MovieUpdate]):
         else:
             query = query.order_by(asc(sort_column))
             
-        # Pagination
-        paginated_query = query.offset(skip).limit(limit)
+        # Pagination - Query one extra to determine has_next
+        paginated_query = query.offset(skip).limit(limit + 1)
         
         # Execute
-        result = await session.execute(paginated_query)
-        movies = result.scalars().unique().all()
+        result = await self.session.execute(paginated_query)
+        movies = list(result.scalars().unique().all())
         
-        # Count total
-        count_query = select(func.count(Movie.id))
-        if search:
-            count_query = count_query.filter(or_(Movie.title.ilike(f"%{search}%"), Movie.original_title.ilike(f"%{search}%")))
-        if genre_id:
-            count_query = count_query.join(Movie.genres).filter(Genre.id == genre_id)
-        if year:
-            count_query = count_query.filter(func.extract('year', Movie.release_date) == year)
+        has_next = len(movies) > limit
+        if has_next:
+            movies = movies[:limit]
             
-        total_result = await session.execute(count_query)
-        total = total_result.scalar() or 0
+        return movies, has_next
         
-        return list(movies), total
-        
-    async def add_genres(self, session: AsyncSession, movie: Movie, genres: List[Genre]):
+    async def add_genres(self, movie: Movie, genres: List[Genre]):
         movie.genres.extend(genres)
         
-    async def set_genres(self, session: AsyncSession, movie: Movie, genres: List[Genre]):
+    async def set_genres(self, movie: Movie, genres: List[Genre]):
         movie.genres = genres
         
-    async def add_cast(self, session: AsyncSession, movie_id: uuid.UUID, person_id: uuid.UUID, character: str, order: int = 0):
+    async def add_cast(self, movie_id: uuid.UUID, person_id: uuid.UUID, character: str, order: int = 0):
         cast = MovieCast(movie_id=movie_id, person_id=person_id, character=character, order=order)
-        session.add(cast)
+        self.session.add(cast)
         
-    async def add_crew(self, session: AsyncSession, movie_id: uuid.UUID, person_id: uuid.UUID, job: str, department: str):
+    async def add_crew(self, movie_id: uuid.UUID, person_id: uuid.UUID, job: str, department: str):
         crew = MovieCrew(movie_id=movie_id, person_id=person_id, job=job, department=department)
-        session.add(crew)
+        self.session.add(crew)

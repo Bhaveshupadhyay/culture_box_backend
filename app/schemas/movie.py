@@ -99,9 +99,16 @@ class Movie(MovieBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class MovieSummary(MovieBase):
+    id: uuid.UUID
+    
+    # We do NOT include genres, cast, or crew here to save bandwidth
+    # and improve serialization speed for lists/homepages!
+
+    model_config = ConfigDict(from_attributes=True)
+
 class PaginatedMovies(BaseModel):
     items: List[Movie]
-    total: int
     page: int
     size: int
-    pages: int
+    has_next: bool = False
