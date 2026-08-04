@@ -10,7 +10,7 @@ router = APIRouter(prefix="/people", tags=["people"])
 async def create_person(
     person_in: PersonCreate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_superuser)
+    _current_user: User = Depends(get_current_superuser)
 ):
     """Create a new person (cast or crew)."""
     return await movie_service.create_person(person_in)

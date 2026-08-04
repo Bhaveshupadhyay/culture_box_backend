@@ -98,5 +98,6 @@ async def get_current_superuser(
 ) -> User:
     """Dependency for Admin APIs to ensure the user is a superuser."""
     if not current_user.is_superuser:
-        raise UnauthorizedException("You do not have enough privileges")
+        from app.core.exceptions import ForbiddenException
+        raise ForbiddenException("You do not have enough privileges")
     return current_user

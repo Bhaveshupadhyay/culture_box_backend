@@ -18,7 +18,7 @@ async def list_genres(
 async def create_genre(
     genre_in: GenreCreate,
     movie_service: MovieService = Depends(get_movie_service),
-    current_user: User = Depends(get_current_superuser)
+    _current_user: User = Depends(get_current_superuser)
 ):
     """Create a new genre."""
     return await movie_service.create_genre(genre_in)
