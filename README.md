@@ -1,6 +1,12 @@
-# Culture Box - Backend API
+<p align="center">
+  <img src="logo.png" alt="Culture Box Logo" width="220"/>
+</p>
 
-Culture Box is an enterprise-grade RESTful API built with **FastAPI**, **SQLAlchemy 2.0 (Async)**, and **PostgreSQL**. The service provides media catalog management, user authentication, high-performance search, and flexible storage integrations for movies and media assets.
+# Culture Box - OTT Streaming Platform Backend
+
+**Culture Box** is a modern Over-The-Top (OTT) streaming platform backend engineered to deliver digital cinema experiences—ranging from feature-length blockbuster movies to independent short films, documentaries, and web series.
+
+The platform provides a high-performance RESTful API powering content discovery, media management, user authentication, catalog searching, and seamless video hosting integration.
 
 ---
 
@@ -22,7 +28,7 @@ The application codebase is organized into distinct, decoupled layers:
 - External API calls and storage requests use `httpx` async clients.
 
 ### 3. Provider-Agnostic Storage Architecture & Memory-Optimized Streaming
-- **Abstract Storage Provider Interface**: Storage logic is completely decoupled behind the `StorageProvider` base interface (`app/core/storage/base.py`). This allows seamless integration with any video hosting or storage provider—including **Cloudflare Stream**, **Vimeo**, **AWS S3**, **Google Cloud Storage**, or object storage services—without altering core business services.
+- **Abstract Storage Provider Interface**: Storage logic is completely decoupled behind the `StorageProvider` base interface (`app/core/storage/base.py`). This enables seamless integration with any video hosting or storage provider—including **Cloudflare Stream**, **Vimeo**, **AWS S3**, **Google Cloud Storage**, or custom CDNs—without altering core business services.
 - **Zero-Buffer Streaming**: File uploads stream file objects (`SpooledTemporaryFile`) directly to the target storage destination without loading entire binary files into system RAM (`file.read()`), preventing Out-Of-Memory (OOM) failures under heavy media uploads.
 
 ### 4. Enterprise Security Standards
@@ -32,7 +38,7 @@ The application codebase is organized into distinct, decoupled layers:
 
 ### 5. High-Performance Caching & Search
 - **Redis Integration**: Configured with Upstash Redis (`app/core/cache.py`) for low-latency endpoint caching.
-- **Typesense Search Engine**: Integrated fuzzy search engine (`app/core/search.py`) for rapid multi-attribute search across movies, genres, and people.
+- **Typesense Search Engine**: Integrated fuzzy search engine (`app/core/search.py`) for rapid multi-attribute search across movies, short films, genres, and cast members.
 
 ### 6. Modern Tooling & Dependency Management
 - **Package Management**: Powered by **uv** for ultra-fast, reproducible python environment installations.
@@ -58,7 +64,8 @@ culture_box/
 ├── tests/                 # Integration and unit tests
 ├── Dockerfile             # Multi-stage container definition
 ├── pyproject.toml         # Dependencies and project metadata
-└── main.py                # FastAPI entry point & lifespan handler
+├── main.py                # FastAPI entry point & lifespan handler
+└── logo.png               # Culture Box platform logo
 ```
 
 ---
@@ -83,7 +90,7 @@ culture_box/
 - Python 3.14+
 - `uv` package manager (`curl -LsSf https://astral.sh/uv/install.sh | sh`)
 - PostgreSQL database
-- Storage / Video hosting account (Cloudflare, Vimeo, S3, etc.)
+- Video hosting / storage provider account (Cloudflare Stream, Vimeo, S3, etc.)
 
 ### Setup Instructions
 
