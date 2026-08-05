@@ -194,10 +194,9 @@ class MovieService:
         unique_filename = f"{uuid.uuid4()}.{file_extension}" if file_extension else str(uuid.uuid4())
         file_path = f"movies/{movie_id}/{sanitized_asset_type}/{unique_filename}"
         
-        # Upload using the abstract storage provider
-        content = await file.read()
+        # Upload using the abstract storage provider without loading full file into RAM
         url = await self.storage_provider.upload_file(
-            file_content=content,
+            file_content=file.file,
             file_path=file_path,
             content_type=file.content_type or "application/octet-stream"
         )

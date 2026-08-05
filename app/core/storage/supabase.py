@@ -1,3 +1,4 @@
+from typing import Union, IO
 import httpx
 from app.core.config import settings
 from app.core.storage.base import StorageProvider
@@ -19,20 +20,25 @@ class SupabaseStorageProvider(StorageProvider):
             "apikey": self.supabase_key
         }
 
-    async def upload_file(self, file_content: bytes, file_path: str, content_type: str) -> str:
+    async def upload_file(self, file_content: Union[bytes, IO[bytes]], file_path: str, content_type: str) -> str:
         """
         Uploads a file to Supabase Storage using its REST API.
+        Accepts raw bytes or stream objects (e.g. file.file).
         """
         url = f"{self.base_url}/{self.bucket}/{file_path}"
         headers = self.headers.copy()
         headers["Content-Type"] = content_type
+        
+        if hasattr(file_content, "seek"):
+            file_content.seek(0)
         
         async with httpx.AsyncClient() as client:
             response = await client.post(url, content=file_content, headers=headers)
             
             if response.status_code not in (200, 201):
                 # If file exists, Supabase returns 400 or 409 usually, we could try UPSERT by adding x-upsert header
-                # Let's try upsert if it fails, or just throw
+                if hasattr(file_content, "seek"):
+                    file_content.seek(0)
                 headers["x-upsert"] = "true"
                 response = await client.post(url, content=file_content, headers=headers)
                 if response.status_code not in (200, 201):

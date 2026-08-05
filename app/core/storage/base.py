@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import BinaryIO
+from typing import BinaryIO, Union, IO
 
 class StorageProvider(ABC):
     @abstractmethod
-    async def upload_file(self, file_content: bytes, file_path: str, content_type: str) -> str:
+    async def upload_file(self, file_content: Union[bytes, IO[bytes]], file_path: str, content_type: str) -> str:
         """
-        Uploads a file and returns the public or signed URL.
+        Uploads a file (raw bytes or binary file stream) and returns the public or signed URL.
         """
         pass
         

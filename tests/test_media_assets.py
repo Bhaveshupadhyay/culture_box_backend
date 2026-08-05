@@ -6,8 +6,10 @@ from app.core.storage.base import StorageProvider
 from app.models.user import User
 from main import app
 
+from typing import Union, IO
+
 class MockStorageProvider(StorageProvider):
-    async def upload_file(self, file_content: bytes, file_path: str, content_type: str) -> str:
+    async def upload_file(self, file_content: Union[bytes, IO[bytes]], file_path: str, content_type: str) -> str:
         return f"https://mock-storage.com/{file_path}"
         
     async def delete_file(self, file_path: str) -> bool:
