@@ -29,6 +29,7 @@ jobs:
         env:
           # Database
           SQLALCHEMY_DATABASE_URI: ${{ secrets.SQLALCHEMY_DATABASE_URI }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           
           # Typesense
           TYPESENSE_API_KEY: ${{ secrets.TYPESENSE_API_KEY }}
